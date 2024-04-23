@@ -6,32 +6,36 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # Read from Excel
-wb = openpyxl.load_workbook('cars.xlsx')
+wb = openpyxl.load_workbook('EXCEL OR EXCEL PATH')
 sheet = wb['Sheet1']
 
+# Define working columns
 vin_column = sheet['A']
 auto_column = sheet['B']
 
-
+# Web drivers
 edge_options = Options()
 edge_options.add_argument("--headless")
 
 driver = webdriver.Edge(options=edge_options)
 
+
+# Main loop
 for i in range(1, len(vin_column)):
     vin = vin_column[i].value
+    auto_info = auto_column[i].value
     print(vin)
-    if vin:
+    if vin and not auto_info:
         try:
-            driver.get(f'https://pl.wikipedia.org/wiki/{vin}')
+            driver.get(f'HTTP_PATH?q={"VIN"}')
             info = WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located((By.XPATH, "/html/body/div[2]/div/div[3]/main/div[3]/div[3]/div[1]/h2[1]/span[1]")))
+                EC.visibility_of_element_located((By.XPATH, "XPATH")))
             auto_info = info.text if info else ""
         except Exception as e:
             print(f"Error: {e}")
             auto_info = "Nie znaleziono/Błąd"
         auto_column[i].value = auto_info
 
-wb.save('cars.xlsx')
+wb.save('EXCEL OR EXCEL PATH')
 
 driver.quit()
