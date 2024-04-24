@@ -36,6 +36,8 @@ for i in range(1, len(vin_column)):
             auto_info = "Nie znaleziono/Błąd"
         auto_column[i].value = auto_info
 
+# Save in Excel
 wb.save('EXCEL OR EXCEL PATH')
 
+# Quit after work done
 driver.quit()
