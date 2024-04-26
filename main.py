@@ -1,4 +1,6 @@
+import os
 import openpyxl
+
 from selenium import webdriver
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.common.by import By
@@ -13,11 +15,16 @@ sheet = wb['Sheet1']
 vin_column = sheet['A']
 auto_column = sheet['B']
 
-# Web drivers
-edge_options = Options()
-edge_options.add_argument("--headless")
+# # Web drivers
+# edge_options = Options()
+# # No show options
+# edge_options.add_argument("--headless") options=edge_options
 
-driver = webdriver.Edge(options=edge_options)
+driver = webdriver.Edge()
+
+# # If needed log and pass
+# LOGIN = os.environ.get("LOGIN")
+# PASSWORD = os.environ.get("PASSWORD")
 
 
 # Main loop
