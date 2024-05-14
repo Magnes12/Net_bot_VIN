@@ -10,8 +10,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # Read from Excel
-wb = openpyxl.load_workbook('cars.xlsx')
-sheet = wb['Sheet1']
+wb = openpyxl.load_workbook('MODELE - VIN - SŁOWNIK DLA BAZY LC WARSZAWA.xlsx')
+sheet = wb['DANE_VIN']
 
 # Define working columns
 vin_column = sheet['A']
@@ -64,14 +64,14 @@ data_info = ""
 vin_input = wait.until(
                 EC.element_to_be_clickable((By.XPATH, "/html/body/div/div[2]/div[2]/div[1]/div/div/div/div[2]/form/div[2]/div[4]/div/input")))
 
-# Main loop
-for i in range(1, len(vin_column)):
+# Main loop len(vin_column)
+for i in range(1, 20):
 
     vin = vin_column[i].value
-    auto_info = kat_column[i].value
+    kat_info = kat_column[i].value
     print(vin)
 
-    if vin and not auto_info:
+    if vin and not kat_info:
 
         try:
 
@@ -137,7 +137,7 @@ for i in range(1, len(vin_column)):
         data_column[i].value = data_info
 
 # Save in Excel
-wb.save('cars.xlsx')
+wb.save('MODELE - VIN - SŁOWNIK DLA BAZY LC WARSZAWA.xlsx')
 
 # Quit after work done
 driver.quit()
