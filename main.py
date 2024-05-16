@@ -13,15 +13,14 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException,
 
 clear = lambda: os.system('cls')
 clear()
+
 # # If needed log and pass
 LOGIN = input("Podaj login: ")
 PASSWORD = getpass.getpass("Podaj hasło: ")
 
 # Read from Excel
-wb = openpyxl.load_workbook('cars.xlsx')
-sheet = wb['Sheet1']
-# wb = openpyxl.load_workbook('MODELE - VIN - SŁOWNIK DLA BAZY LC WARSZAWA.xlsx')
-# sheet = wb['DANE_VIN']
+wb = openpyxl.load_workbook('MODELE - VIN - SŁOWNIK DLA BAZY LC WARSZAWA.xlsx')
+sheet = wb['DANE_VIN']
 
 # Define working columns
 vin_column = sheet['A']
@@ -201,7 +200,7 @@ for i in range(1, len(vin_column)):
         print(f"{vin} - dane dla tego VIN'u są kompletne")
 
 # Save Excel
-wb.save('cars.xlsx')
+wb.save('MODELE - VIN - SŁOWNIK DLA BAZY LC WARSZAWA.xlsx')
 print("Excel zapisany.")
 
 # Quit after work done
