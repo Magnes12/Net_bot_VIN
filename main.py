@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import getpass
 import openpyxl
@@ -9,31 +10,44 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 
-clear = lambda: os.system('cls')
+
+def clear():
+    os.system('cls')
+
+
 clear()
+
+FILE = "NUMERY VIN DO SPRAWDZENIA.xlsx"
+
+try:
+    # Read from Excel
+    wb = openpyxl.load_workbook(f'{FILE}')
+    sheet = wb['DANE_VIN']
+
+    # Define working columns
+    vin_column = sheet['A']
+    kat_column = sheet['B']
+    typ_column = sheet['C']
+    rodzaj_column = sheet['D']
+    data_column = sheet['E']
+except Exception:
+    print(f"""
+        Błąd otwiarnia pliku
+        Sprawdź czy plik nazywa się - {FILE}
+        Jest zamknięty
+        Oraz skoroszyt nazywa się 'DANE_VIN'
+        """)
+    time.sleep(3)
+    sys.exit()
+
+# Web drivers
+driver = webdriver.Edge()
+wait = WebDriverWait(driver, 20)
 
 # # If needed log and pass
 LOGIN = input("Podaj login: ")
 PASSWORD = getpass.getpass("Podaj hasło: ")
-
-# Read from Excel
-wb = openpyxl.load_workbook('MODELE - VIN - SŁOWNIK DLA BAZY LC WARSZAWA.xlsx')
-sheet = wb['DANE_VIN']
-
-# Define working columns
-vin_column = sheet['A']
-kat_column = sheet['B']
-typ_column = sheet['C']
-rodzaj_column = sheet['D']
-data_column = sheet['E']
-
-# Web drivers
-edge_options = Options()
-
-driver = webdriver.Edge()
-wait = WebDriverWait(driver, 20)
 
 # Try to log in
 try:
@@ -64,10 +78,22 @@ try:
     print("Przechodzę do VeDOC...")
     driver.get('https://prod.core.public.vedoc.i.mercedes-benz.com/ui/VehicleArrangement.html')
 
+    try:
+        ok_button = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//button[@data-ng-click='okAction($event)']"
+            ))
+        )
+        ok_button.click()
+        print("Kliknięto przycisk OK dla wiadomości systemowych")
+    except Exception:
+        print("Wiadomości systemowe nie pojawiły się")
+
 except Exception as e:
     clear()
     print(f"Error: {e}")
-    print("Błędny login albo hasło")
+    print("Błąd nieznany")
+    time.sleep(1)
+    sys.exit()
 
 # Define empty variables
 kategoria_info = ""
@@ -200,7 +226,7 @@ for i in range(1, len(vin_column)):
         print(f"{vin} - dane dla tego VIN'u są kompletne")
 
 # Save Excel
-wb.save('MODELE - VIN - SŁOWNIK DLA BAZY LC WARSZAWA.xlsx')
+wb.save(f'{FILE}')
 print("Excel zapisany.")
 
 # Quit after work done
