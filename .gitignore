@@ -1,12 +1,18 @@
+*.so
+*.xlsx
+*.zip
+*.exe
+.exe
+test.py
+main.exe
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
 # C extensions
-*.so
-*.xlsx
-test.py
+
 # Distribution / packaging
 data
 .Python

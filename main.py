@@ -3,7 +3,7 @@ import sys
 import time
 import getpass
 import openpyxl
-
+import logging
 from selenium import webdriver
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.common.by import By
@@ -11,224 +11,175 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
 
-def clear():
-    os.system('cls')
+
+def clear_console():
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        os.system('clear')
 
 
-clear()
-
-FILE = "NUMERY VIN DO SPRAWDZENIA.xlsx"
-
-try:
-    # Read from Excel
-    wb = openpyxl.load_workbook(f'{FILE}')
-    sheet = wb['DANE_VIN']
-
-    # Define working columns
-    vin_column = sheet['A']
-    kat_column = sheet['B']
-    typ_column = sheet['C']
-    rodzaj_column = sheet['D']
-    data_column = sheet['E']
-except Exception:
-    print(f"""
+def load_excel(file_name):
+    try:
+        wb = openpyxl.load_workbook(file_name)
+        sheet = wb['DANE_VIN']
+        return wb, sheet
+    except Exception:
+        logging.error(f"""
         Błąd otwiarnia pliku
-        Sprawdź czy plik nazywa się - {FILE}
+        Sprawdź czy plik nazywa się - {file_name}
         Jest zamknięty
         Oraz skoroszyt nazywa się 'DANE_VIN'
         """)
-    time.sleep(3)
-    sys.exit()
+        sys.exit()
 
-# Web drivers
-driver = webdriver.Edge()
-wait = WebDriverWait(driver, 20)
 
-# # If needed log and pass
-LOGIN = input("Podaj login: ")
-PASSWORD = getpass.getpass("Podaj hasło: ")
+def setup_webdriver():
+    edge_options = Options()
+    driver = webdriver.Edge(options=edge_options)
+    wait = WebDriverWait(driver, 20)
+    driver.maximize_window()
+    return driver, wait
 
-# Try to log in
-try:
 
-    print("Otwieram stronę logowania...")
-    driver.get('https://prod.core.public.vedoc.i.mercedes-benz.com/ui/homepage.html')
-
-    print("Wpisuje login...")
-    login = wait.until(
-        EC.element_to_be_clickable((
-                By.ID, "userid"
-                ))
-        )
-    login.send_keys(str(LOGIN))
-    login.send_keys(Keys.ENTER)
-    time.sleep(1)
-
-    print("Wpisuje hasło...")
-    password = wait.until(
-        EC.element_to_be_clickable((
-                By.ID, "password"
-                ))
-        )
-    password.send_keys(str(PASSWORD))
-    password.send_keys(Keys.ENTER)
-    time.sleep(1)
-
-    print("Przechodzę do VeDOC...")
-    driver.get('https://prod.core.public.vedoc.i.mercedes-benz.com/ui/VehicleArrangement.html')
-
+def login(driver, wait, login_url, username, password):
     try:
-        ok_button = wait.until(EC.element_to_be_clickable((
-            By.XPATH, "//button[@data-ng-click='okAction($event)']"
-            ))
-        )
-        ok_button.click()
-        print("Kliknięto przycisk OK dla wiadomości systemowych")
-    except Exception:
-        print("Wiadomości systemowe nie pojawiły się")
+        logging.info("Otwieram stronę logowania...")
+        driver.get(login_url)
 
-except Exception as e:
-    clear()
-    print(f"Error: {e}")
-    print("Błąd nieznany")
-    time.sleep(1)
-    sys.exit()
+        logging.info("Wpisuje login...")
+        login_input = wait.until(EC.element_to_be_clickable((By.ID, "userid")))
+        login_input.send_keys(username)
+        login_input.send_keys(Keys.ENTER)
+        time.sleep(1)
 
-# Define empty variables
-kategoria_info = ""
-typ_info = ""
-rodzaj_info = ""
-data_info = ""
+        logging.info("Wpisuje hasło...")
+        password_input = wait.until(EC.element_to_be_clickable((By.ID, "password")))
+        password_input.send_keys(password)
+        password_input.send_keys(Keys.ENTER)
+        time.sleep(1)
+    except Exception as e:
+        logging.error(f"Login failed: {str(e)}")
+        driver.quit()
+        sys.exit()
 
-vin_input = wait.until(
-                EC.element_to_be_clickable((
-                        By.XPATH, "/html/body/div/div[2]/div[2]/div[1]/div/div/div/div[2]/form/div[2]/div[4]/div/input"
-                        ))
-                )
-clear()
-# Main loop len(vin_column)
-for i in range(1, len(vin_column)):
 
-    vin = vin_column[i].value
-    kat_info = kat_column[i].value
-
-    # Check if there is data
-    if vin and not kat_info:
-
-        print(vin)
+def navigate_to_vedoc(driver, wait, vedoc_url):
+    try:
+        logging.info("Przechodzę do VeDOC...")
+        driver.get(vedoc_url)
+        time.sleep(1)
 
         try:
+            ok_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@data-ng-click='okAction($event)']")))
+            ok_button.click()
+            logging.info("Kliknięto przycisk OK dla wiadomości systemowych")
+        except Exception:
+            logging.info("Wiadomości systemowe nie pojawiły się")
+    except Exception as e:
+        logging.error(f"Error: {e} \n Błąd nieznany")
+        driver.quit()
+        sys.exit()
 
-            vin_input.clear()
-            vin_input.send_keys(vin)
-            vin_input.send_keys(Keys.ENTER)
-            time.sleep(0.5)
 
-            wait.until(
-                EC.invisibility_of_element_located((
-                        By.ID, "loading-bar-spinner"
-                        ))
-            )
-            wait.until(
-                EC.invisibility_of_element_located((
-                        By.ID, "loading-bar"
-                        ))
-            )
+def process_vins(sheet, driver, wait):
+    vin_input = wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div/div[2]/div[2]/div[1]/div/div/div/div[2]/form/div[2]/div[4]/div/input")))
 
-            kategoria = wait.until(
-                EC.presence_of_element_located((
-                        By.XPATH, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'Category')]"
-                        ))
-                )
-            kategoria_info = kategoria.text if kategoria else ""
+    for i in range(1, len(sheet['A'])):
+        vin = sheet['A'][i].value
+        kat_info = sheet['B'][i].value
 
-            if kategoria_info == "Osobowe (0)":
+        if vin and not kat_info:
+            logging.info(f"VIN: {vin}")
+            try:
+                vin_input.clear()
+                vin_input.send_keys(vin)
+                vin_input.send_keys(Keys.ENTER)
+                time.sleep(0.5)
 
-                typ = wait.until(
-                    EC.visibility_of_element_located((
-                            By.XPATH, "//span[@class='read-only ng-binding' and @data-ng-bind-html]"
-                            ))
-                    )
-                typ_info = typ.text if typ else ""
+                wait.until(EC.invisibility_of_element_located((By.ID, "loading-bar-spinner")))
+                wait.until(EC.invisibility_of_element_located((By.ID, "loading-bar")))
 
-                rodzaj = wait.until(
-                    EC.visibility_of_element_located((
-                            By.XPATH, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'BodyType')]"
-                            ))
-                    )
-                rodzaj_info = rodzaj.text if rodzaj else ""
+                kategoria_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'Category')]")
+                typ_info, rodzaj_info, data_info = extract_vehicle_data(wait, kategoria_info)
 
-            elif kategoria_info.startswith("Dostawcze") or kategoria_info.startswith("Ciężarowe"):
+                sheet['B'][i].value = kategoria_info
+                sheet['C'][i].value = typ_info
+                sheet['D'][i].value = rodzaj_info
+                sheet['E'][i].value = data_info
 
-                typ = wait.until(
-                    EC.visibility_of_element_located((
-                            By.XPATH, "//span[contains(@class, 'read-only ng-binding') and contains(@data-ng-bind-html, 'viewDataObject.vehicleModelDesignation.designation.requestedText')]"
-                            ))
-                    )
-                typ_info = typ.text if typ else ""
-                rodzaj_info = ""
-
-            elif kategoria_info.startswith("Klasa"):
-
-                typ = wait.until(
-                    EC.visibility_of_element_located((
-                            By.XPATH, "//span[@class='read-only ng-binding' and contains(@data-ng-bind-html, 'viewDataObject.vehicleModelDesignation.designation.requestedText')]"
-                            ))
-                    )
-                typ_info = typ.text if typ else ""
-
-                rodzaj = wait.until(
-                    EC.visibility_of_element_located((
-                            By.XPATH, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'viewDataObject.vehicleModelDesignation.bodyType') and not(text()='3')]"
-                            ))
-                    )
-                rodzaj_info = rodzaj.text if rodzaj else ""
-
-            else:
-
+            except Exception:
+                kategoria_info = "Nie znaleziono pojazdu/Brak uprawień"
                 typ_info = ""
                 rodzaj_info = ""
+                data_info = ""
+        else:
+            logging.info(f"{vin} - dane dla tego VIN'u są kompletne")
 
-            try:
-                data = wait.until(
-                    EC.visibility_of_element_located((By.XPATH, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'idate')]"))
-                )
-                data_info = data.text if data else ""
-            except Exception:
-                alert = driver.find_elements(By.CSS_SELECTOR, "span.alert-counter.ng-binding.ng-scope.ng-hide")
-                if alert:
-                    kategoria_info = "Nie znaleziono pojazdu/Brak uprawień"
-                    typ_info = ""
-                    rodzaj_info = ""
-                    data_info = ""
-                else:
-                    data_info = "Brak daty"
 
-        except Exception:
-            kategoria_info = "Nie znaleziono pojazdu/Brak uprawień"
-            typ_info = ""
-            rodzaj_info = ""
-            data_info = ""
+def extract_data(wait, xpath):
+    try:
+        element = wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
+        return element.text if element else ""
+    except Exception:
+        return ""
 
-        kat_column[i].value = kategoria_info
-        typ_column[i].value = typ_info
-        rodzaj_column[i].value = rodzaj_info
-        data_column[i].value = data_info
 
-        print(kategoria_info)
-        print(typ_info)
-        print(rodzaj_info)
-        print(data_info)
-        print("")
+def extract_vehicle_data(wait, kategoria_info):
+    typ_info = ""
+    rodzaj_info = ""
+    data_info = ""
 
-    else:
-        print(f"{vin} - dane dla tego VIN'u są kompletne")
+    try:
+        if kategoria_info == "Osobowe (0)":
+            typ_info = extract_data(wait, "//span[@class='read-only ng-binding' and @data-ng-bind-html]")
+            rodzaj_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'BodyType')]")
 
-# Save Excel
-wb.save(f'{FILE}')
-print("Excel zapisany.")
+        elif kategoria_info.startswith("Dostawcze") or kategoria_info.startswith("Ciężarowe"):
+            typ_info = extract_data(wait, "//span[contains(@class, 'read-only ng-binding') and contains(@data-ng-bind-html, 'viewDataObject.vehicleModelDesignation.designation.requestedText')]")
 
-# Quit after work done
-driver.quit()
-print("Zamykam program.")
+        elif kategoria_info.startswith("Klasa"):
+            typ_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind-html, 'viewDataObject.vehicleModelDesignation.designation.requestedText')]")
+            rodzaj_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'viewDataObject.vehicleModelDesignation.bodyType') and not(text()='3')]")
+
+        data_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'idate')]")
+    except Exception:
+        data_info = "Brak daty"
+
+    logging.info(f"{kategoria_info}\n{typ_info}\n{rodzaj_info}\n{data_info}\n")
+    return typ_info, rodzaj_info, data_info
+
+
+def main():
+    clear_console()
+
+    excel_file = "NUMERY_VIN.xlsx"
+    wb, sheet = load_excel(excel_file)
+
+    driver, wait = setup_webdriver()
+
+    login_url = 'https://prod.core.public.vedoc.i.mercedes-benz.com/ui/homepage.html'
+    vedoc_url = 'https://prod.core.public.vedoc.i.mercedes-benz.com/ui/VehicleArrangement.html'
+
+    clear_console()
+    username = input("Podaj login: ")
+    password = getpass.getpass("Podaj hasło: ")
+
+    clear_console()
+    login(driver, wait, login_url, username, password)
+    navigate_to_vedoc(driver, wait, vedoc_url)
+    process_vins(sheet, driver, wait)
+
+    wb.save(excel_file)
+    logging.info("Excel zapisany.")
+    driver.quit()
+
+    logging.info("Otwieram Excel...")
+    os.system(excel_file)
+
+
+if __name__ == "__main__":
+    main()
