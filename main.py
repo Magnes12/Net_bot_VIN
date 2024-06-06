@@ -11,9 +11,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(message)s')
-
 
 def clear_console():
     if os.name == 'nt':
@@ -47,17 +44,21 @@ def setup_webdriver():
 
 def login(driver, wait, login_url, username, password):
     try:
-        logging.info("Otwieram stronę logowania...")
+        print("Otwieram stronę logowania...")
         driver.get(login_url)
 
-        logging.info("Wpisuje login...")
-        login_input = wait.until(EC.element_to_be_clickable((By.ID, "userid")))
+        print("Wpisuje login...")
+        login_input = wait.until(EC.element_to_be_clickable(
+            (By.ID, "userid")
+            ))
         login_input.send_keys(username)
         login_input.send_keys(Keys.ENTER)
         time.sleep(1)
 
-        logging.info("Wpisuje hasło...")
-        password_input = wait.until(EC.element_to_be_clickable((By.ID, "password")))
+        print("Wpisuje hasło...")
+        password_input = wait.until(EC.element_to_be_clickable(
+            (By.ID, "password")
+            ))
         password_input.send_keys(password)
         password_input.send_keys(Keys.ENTER)
         time.sleep(1)
@@ -69,16 +70,18 @@ def login(driver, wait, login_url, username, password):
 
 def navigate_to_vedoc(driver, wait, vedoc_url):
     try:
-        logging.info("Przechodzę do VeDOC...")
+        print("Przechodzę do VeDOC...")
         driver.get(vedoc_url)
         time.sleep(1)
 
         try:
-            ok_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@data-ng-click='okAction($event)']")))
+            ok_button = wait.until(EC.element_to_be_clickable(
+                (By.XPATH, "//button[@data-ng-click='okAction($event)']")
+                ))
             ok_button.click()
-            logging.info("Kliknięto przycisk OK dla wiadomości systemowych")
+            print("Kliknięto przycisk OK dla wiadomości systemowych")
         except Exception:
-            logging.info("Wiadomości systemowe nie pojawiły się")
+            print("Wiadomości systemowe nie pojawiły się")
     except Exception as e:
         logging.error(f"Error: {e} \n Błąd nieznany")
         driver.quit()
@@ -86,38 +89,42 @@ def navigate_to_vedoc(driver, wait, vedoc_url):
 
 
 def process_vins(sheet, driver, wait):
-    vin_input = wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div/div[2]/div[2]/div[1]/div/div/div/div[2]/form/div[2]/div[4]/div/input")))
+    vin_input = wait.until(EC.element_to_be_clickable(
+        (By.XPATH, "/html/body/div/div[2]/div[2]/div[1]/div/div/div/div[2]/form/div[2]/div[4]/div/input")
+        ))
 
     for i in range(1, len(sheet['A'])):
         vin = sheet['A'][i].value
         kat_info = sheet['B'][i].value
 
         if vin and not kat_info:
-            logging.info(f"VIN: {vin}")
+            print(f"VIN: {vin}")
             try:
                 vin_input.clear()
                 vin_input.send_keys(vin)
                 vin_input.send_keys(Keys.ENTER)
                 time.sleep(0.5)
 
-                wait.until(EC.invisibility_of_element_located((By.ID, "loading-bar-spinner")))
-                wait.until(EC.invisibility_of_element_located((By.ID, "loading-bar")))
+                wait.until(EC.invisibility_of_element_located(
+                    (By.ID, "loading-bar-spinner")))
+                wait.until(EC.invisibility_of_element_located(
+                    (By.ID, "loading-bar")))
 
                 kategoria_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'Category')]")
                 typ_info, rodzaj_info, data_info = extract_vehicle_data(wait, kategoria_info)
-
-                sheet['B'][i].value = kategoria_info
-                sheet['C'][i].value = typ_info
-                sheet['D'][i].value = rodzaj_info
-                sheet['E'][i].value = data_info
 
             except Exception:
                 kategoria_info = "Nie znaleziono pojazdu/Brak uprawień"
                 typ_info = ""
                 rodzaj_info = ""
                 data_info = ""
+
+            sheet['B'][i].value = kategoria_info
+            sheet['C'][i].value = typ_info
+            sheet['D'][i].value = rodzaj_info
+            sheet['E'][i].value = data_info
         else:
-            logging.info(f"{vin} - dane dla tego VIN'u są kompletne")
+            print(f"{vin} - dane dla tego VIN'u są kompletne")
 
 
 def extract_data(wait, xpath):
@@ -149,7 +156,7 @@ def extract_vehicle_data(wait, kategoria_info):
     except Exception:
         data_info = "Brak daty"
 
-    logging.info(f"{kategoria_info}\n{typ_info}\n{rodzaj_info}\n{data_info}\n")
+    print(f"{kategoria_info}\n{typ_info}\n{rodzaj_info}\n{data_info}\n")
     return typ_info, rodzaj_info, data_info
 
 
@@ -160,7 +167,7 @@ def main():
     wb, sheet = load_excel(excel_file)
 
     driver, wait = setup_webdriver()
-
+    clear_console()
     login_url = 'https://prod.core.public.vedoc.i.mercedes-benz.com/ui/homepage.html'
     vedoc_url = 'https://prod.core.public.vedoc.i.mercedes-benz.com/ui/VehicleArrangement.html'
 
@@ -174,10 +181,10 @@ def main():
     process_vins(sheet, driver, wait)
 
     wb.save(excel_file)
-    logging.info("Excel zapisany.")
+    print("Excel zapisany.")
     driver.quit()
 
-    logging.info("Otwieram Excel...")
+    print("Otwieram Excel...")
     os.system(excel_file)
 
 
