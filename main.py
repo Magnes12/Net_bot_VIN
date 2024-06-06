@@ -25,7 +25,7 @@ def load_excel(file_name):
         sheet = wb['DANE_VIN']
         return wb, sheet
     except Exception:
-        logging.error(f"""
+        print(f"""
         Błąd otwiarnia pliku
         Sprawdź czy plik nazywa się - {file_name}
         Jest zamknięty
