@@ -3,13 +3,28 @@ import sys
 import time
 import getpass
 import openpyxl
-import logging
+import subprocess
 from selenium import webdriver
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from contextlib import contextmanager
+
+
+@contextmanager
+def suppress_output():
+    with open(os.devnull, 'w') as devnull:
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        sys.stdout = devnull
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
 
 
 def clear_console():
@@ -36,6 +51,7 @@ def load_excel(file_name):
 
 def setup_webdriver():
     edge_options = Options()
+    edge_options.add_argument('--log-level=3') 
     driver = webdriver.Edge(options=edge_options)
     wait = WebDriverWait(driver, 20)
     driver.maximize_window()
@@ -63,7 +79,7 @@ def login(driver, wait, login_url, username, password):
         password_input.send_keys(Keys.ENTER)
         time.sleep(1)
     except Exception as e:
-        logging.error(f"Login failed: {str(e)}")
+        print(f"Błąd logowania: {str(e)}")
         driver.quit()
         sys.exit()
 
@@ -73,7 +89,7 @@ def navigate_to_vedoc(driver, wait, vedoc_url):
         print("Przechodzę do VeDOC...")
         driver.get(vedoc_url)
         time.sleep(1)
-
+        print("Sprawdzanie czy są wiadomości systemowe...")
         try:
             ok_button = wait.until(EC.element_to_be_clickable(
                 (By.XPATH, "//button[@data-ng-click='okAction($event)']")
@@ -83,7 +99,7 @@ def navigate_to_vedoc(driver, wait, vedoc_url):
         except Exception:
             print("Wiadomości systemowe nie pojawiły się")
     except Exception as e:
-        logging.error(f"Error: {e} \n Błąd nieznany")
+        print(f"Error: {e} \n Błąd nieznany")
         driver.quit()
         sys.exit()
 
@@ -114,10 +130,7 @@ def process_vins(sheet, driver, wait):
                 typ_info, rodzaj_info, data_info = extract_vehicle_data(wait, kategoria_info)
 
             except Exception:
-                kategoria_info = "Nie znaleziono pojazdu/Brak uprawień"
-                typ_info = ""
-                rodzaj_info = ""
-                data_info = ""
+                print("Nie znaleziono pojazdu/Brak uprawień")
 
             sheet['B'][i].value = kategoria_info
             sheet['C'][i].value = typ_info
@@ -166,7 +179,9 @@ def main():
     excel_file = "NUMERY_VIN.xlsx"
     wb, sheet = load_excel(excel_file)
 
-    driver, wait = setup_webdriver()
+    with suppress_output():
+        driver, wait = setup_webdriver()
+
     clear_console()
     login_url = 'https://prod.core.public.vedoc.i.mercedes-benz.com/ui/homepage.html'
     vedoc_url = 'https://prod.core.public.vedoc.i.mercedes-benz.com/ui/VehicleArrangement.html'
@@ -176,6 +191,7 @@ def main():
     password = getpass.getpass("Podaj hasło: ")
 
     clear_console()
+
     login(driver, wait, login_url, username, password)
     navigate_to_vedoc(driver, wait, vedoc_url)
     process_vins(sheet, driver, wait)
@@ -185,7 +201,15 @@ def main():
     driver.quit()
 
     print("Otwieram Excel...")
-    os.system(excel_file)
+    if sys.platform == "win32":
+        os.startfile(excel_file)
+    else:
+        subprocess.call(('open', excel_file))
+
+    for i in range(3, 1, -1):
+        print(f"Zamykanie programu...{i}")
+        time.sleep(1)
+    sys.exit()
 
 
 if __name__ == "__main__":
