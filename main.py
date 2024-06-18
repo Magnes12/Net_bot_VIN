@@ -104,42 +104,6 @@ def navigate_to_vedoc(driver, wait, vedoc_url):
         sys.exit()
 
 
-def process_vins(sheet, driver, wait):
-    vin_input = wait.until(EC.element_to_be_clickable(
-        (By.XPATH, "/html/body/div/div[2]/div[2]/div[1]/div/div/div/div[2]/form/div[2]/div[4]/div/input")
-        ))
-
-    for i in range(1, len(sheet['A'])):
-        vin = sheet['A'][i].value
-        kat_info = sheet['B'][i].value
-
-        if vin and not kat_info:
-            print(f"VIN: {vin}")
-            try:
-                vin_input.clear()
-                vin_input.send_keys(vin)
-                vin_input.send_keys(Keys.ENTER)
-                time.sleep(0.5)
-
-                wait.until(EC.invisibility_of_element_located(
-                    (By.ID, "loading-bar-spinner")))
-                wait.until(EC.invisibility_of_element_located(
-                    (By.ID, "loading-bar")))
-
-                kategoria_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'Category')]")
-                typ_info, rodzaj_info, data_info = extract_vehicle_data(wait, kategoria_info)
-
-            except Exception:
-                print("Nie znaleziono pojazdu/Brak uprawień")
-
-            sheet['B'][i].value = kategoria_info
-            sheet['C'][i].value = typ_info
-            sheet['D'][i].value = rodzaj_info
-            sheet['E'][i].value = data_info
-        else:
-            print(f"{vin} - dane dla tego VIN'u są kompletne")
-
-
 def extract_data(wait, xpath):
     try:
         element = wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
@@ -171,6 +135,41 @@ def extract_vehicle_data(wait, kategoria_info):
 
     print(f"{kategoria_info}\n{typ_info}\n{rodzaj_info}\n{data_info}\n")
     return typ_info, rodzaj_info, data_info
+
+
+def process_vins(sheet, driver, wait):
+    vin_input = wait.until(EC.element_to_be_clickable(
+        (By.XPATH, "/html/body/div/div[2]/div[2]/div[1]/div/div/div/div[2]/form/div[2]/div[4]/div/input")
+        ))
+
+    for i in range(1, len(sheet['A'])):
+        vin = sheet['A'][i].value
+        kat_info = sheet['B'][i].value
+
+        if vin and not kat_info:
+            print(f"VIN: {vin}")
+            try:
+                vin_input.clear()
+                vin_input.send_keys(vin)
+                vin_input.send_keys(Keys.ENTER)
+
+                wait.until(EC.invisibility_of_element_located(
+                    (By.ID, "loading-bar-spinner")))
+                wait.until(EC.invisibility_of_element_located(
+                    (By.ID, "loading-bar")))
+                time.sleep(1)
+                kategoria_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'Category')]")
+                typ_info, rodzaj_info, data_info = extract_vehicle_data(wait, kategoria_info)
+
+            except Exception:
+                print("Nie znaleziono pojazdu/Brak uprawień")
+
+            sheet['B'][i].value = kategoria_info
+            sheet['C'][i].value = typ_info
+            sheet['D'][i].value = rodzaj_info
+            sheet['E'][i].value = data_info
+        else:
+            print(f"{vin} - dane dla tego VIN'u są kompletne")
 
 
 def main():
