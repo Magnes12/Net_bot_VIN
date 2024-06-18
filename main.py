@@ -53,7 +53,7 @@ def setup_webdriver():
     edge_options = Options()
     edge_options.add_argument('--log-level=3')
     driver = webdriver.Edge(options=edge_options)
-    wait = WebDriverWait(driver, 20)
+    wait = WebDriverWait(driver, 30)
     driver.maximize_window()
     return driver, wait
 
@@ -69,7 +69,7 @@ def login(driver, wait, login_url, username, password):
             ))
         login_input.send_keys(username)
         login_input.send_keys(Keys.ENTER)
-        time.sleep(1)
+        time.sleep(2)
 
         print("Wpisuje hasło...")
         password_input = wait.until(EC.element_to_be_clickable(
@@ -77,7 +77,7 @@ def login(driver, wait, login_url, username, password):
             ))
         password_input.send_keys(password)
         password_input.send_keys(Keys.ENTER)
-        time.sleep(1)
+        time.sleep(2)
     except Exception as e:
         print(f"Błąd logowania: {str(e)}")
         driver.quit()
@@ -88,7 +88,7 @@ def navigate_to_vedoc(driver, wait, vedoc_url):
     try:
         print("Przechodzę do VeDOC...")
         driver.get(vedoc_url)
-        time.sleep(1)
+        time.sleep(2)
         print("Sprawdzanie czy są wiadomości systemowe...")
         try:
             ok_button = wait.until(EC.element_to_be_clickable(
@@ -157,7 +157,7 @@ def process_vins(sheet, driver, wait):
                     (By.ID, "loading-bar-spinner")))
                 wait.until(EC.invisibility_of_element_located(
                     (By.ID, "loading-bar")))
-                time.sleep(1)
+                time.sleep(2)
                 kategoria_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'Category')]")
                 typ_info, rodzaj_info, data_info = extract_vehicle_data(wait, kategoria_info)
 
