@@ -204,7 +204,6 @@ def main():
     password = getpass.getpass("Podaj hasło: ")
 
     clear_console()
-
     login(driver, wait, login_url, username, password)
     navigate_to_vedoc(driver, wait, vedoc_url)
     process_vins(sheet, driver, wait)
