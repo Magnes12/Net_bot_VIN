@@ -51,7 +51,7 @@ def load_excel(file_name):
 
 def setup_webdriver():
     edge_options = Options()
-    edge_options.add_argument('--log-level=3') 
+    edge_options.add_argument('--log-level=3')
     driver = webdriver.Edge(options=edge_options)
     wait = WebDriverWait(driver, 20)
     driver.maximize_window()
@@ -127,15 +127,21 @@ def process_vins(sheet, driver, wait):
                     (By.ID, "loading-bar")))
 
                 kategoria_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'Category')]")
-                typ_info, rodzaj_info, data_info = extract_vehicle_data(wait, kategoria_info)
+                if kategoria_info:
+                    typ_info, rodzaj_info, data_info, vin_info, fin_info = extract_vehicle_data(wait, kategoria_info)
+                    sheet['B'][i].value = kategoria_info
+                    sheet['C'][i].value = typ_info
+                    sheet['D'][i].value = rodzaj_info
+                    sheet['E'][i].value = data_info
+                    sheet['F'][i].value = vin_info
+                    sheet['G'][i].value = fin_info
+                else:
+                    print("Nie znaleziono pojazdu/Brak uprawień")
+                    sheet['B'][i].value = "Nie znaleziono pojazdu/Brak uprawień"
+            except Exception as e:
+                print(f"Błąd {e}")
 
-            except Exception:
-                print("Nie znaleziono pojazdu/Brak uprawień")
 
-            sheet['B'][i].value = kategoria_info
-            sheet['C'][i].value = typ_info
-            sheet['D'][i].value = rodzaj_info
-            sheet['E'][i].value = data_info
         else:
             print(f"{vin} - dane dla tego VIN'u są kompletne")
 
@@ -152,8 +158,13 @@ def extract_vehicle_data(wait, kategoria_info):
     typ_info = ""
     rodzaj_info = ""
     data_info = ""
+    vin_info = ""
+    fin_info = ""
 
     try:
+        vin_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'viewDataObject.vehicle.activeState.vin')]")
+        fin_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'viewDataObject.vehicle.fin')]")
+
         if kategoria_info == "Osobowe (0)":
             typ_info = extract_data(wait, "//span[@class='read-only ng-binding' and @data-ng-bind-html]")
             rodzaj_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'BodyType')]")
@@ -166,11 +177,12 @@ def extract_vehicle_data(wait, kategoria_info):
             rodzaj_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'viewDataObject.vehicleModelDesignation.bodyType') and not(text()='3')]")
 
         data_info = extract_data(wait, "//span[@class='read-only ng-binding' and contains(@data-ng-bind, 'idate')]")
-    except Exception:
-        data_info = "Brak daty"
 
-    print(f"{kategoria_info}\n{typ_info}\n{rodzaj_info}\n{data_info}\n")
-    return typ_info, rodzaj_info, data_info
+    except Exception:
+        print("Błąd pobierania danych")
+
+    print(f"{vin_info}\n{fin_info}\n{kategoria_info}\n{typ_info}\n{rodzaj_info}\n{data_info}\n")
+    return typ_info, rodzaj_info, data_info, vin_info, fin_info
 
 
 def main():
