@@ -142,7 +142,6 @@ def process_vins(sheet, driver, wait):
             except Exception as e:
                 print(f"Błąd {e}")
 
-
         else:
             print(f"{vin} - dane dla tego VIN'u są kompletne")
 
