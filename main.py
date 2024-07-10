@@ -52,7 +52,6 @@ def load_excel(file_name):
 def setup_webdriver():
     edge_options = Options()
     edge_options.add_argument('--log-level=3')
-    edge_options.add_argument('--log-level=3')
     driver = webdriver.Edge(options=edge_options)
     wait = WebDriverWait(driver, 30)
     driver.maximize_window()
