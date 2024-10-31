@@ -88,13 +88,10 @@ def login(driver, wait, login_url, username, password):
 
 def authentication(driver, wait):
     try:
-        # Wait for URL to change to the authentication page
         wait.until(lambda driver: "pingone.eu" in driver.current_url)
 
-        # Optional: Check for a secondary element to ensure the page has fully loaded
         wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
-        # Retry logic to handle cases where element takes extra time to load
         retry_count = 0
         auth_number = None
         while retry_count < 3 and auth_number is None:
@@ -104,7 +101,6 @@ def authentication(driver, wait):
                 ))
                 print("Numer do potwierdzenia:", auth_number.text)
 
-                # Wait for the "Authenticated" message to appear
                 wait.until(EC.presence_of_element_located(
                     (By.XPATH, "//div[contains(@class, 'text') and text()='Authenticated']")
                 ))
@@ -116,7 +112,7 @@ def authentication(driver, wait):
                 time.sleep(1)
 
         if not auth_number:
-            print("Authentication number element not found after retries.")
+            print("Nie znaleziono numeru auth.")
     except Exception as e:
         print(f"Błąd: {str(e)}")
 
