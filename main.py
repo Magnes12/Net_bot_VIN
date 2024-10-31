@@ -86,6 +86,41 @@ def login(driver, wait, login_url, username, password):
         sys.exit()
 
 
+def authentication(driver, wait):
+    try:
+        # Wait for URL to change to the authentication page
+        wait.until(lambda driver: "pingone.eu" in driver.current_url)
+
+        # Optional: Check for a secondary element to ensure the page has fully loaded
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+
+        # Retry logic to handle cases where element takes extra time to load
+        retry_count = 0
+        auth_number = None
+        while retry_count < 3 and auth_number is None:
+            try:
+                auth_number = wait.until(EC.presence_of_element_located(
+                    (By.XPATH, "//div[contains(@class, 'numbermatching')]")
+                ))
+                print("Numer do potwierdzenia:", auth_number.text)
+
+                # Wait for the "Authenticated" message to appear
+                wait.until(EC.presence_of_element_located(
+                    (By.XPATH, "//div[contains(@class, 'text') and text()='Authenticated']")
+                ))
+
+                break
+            except Exception:
+                retry_count += 1
+                print(f"Ponawiam próbę {retry_count}")
+                time.sleep(1)
+
+        if not auth_number:
+            print("Authentication number element not found after retries.")
+    except Exception as e:
+        print(f"Błąd: {str(e)}")
+
+
 def navigate_to_vedoc(driver, wait, vedoc_url):
     try:
         print("Przechodzę do VeDOC...")
@@ -205,6 +240,7 @@ def main():
 
     clear_console()
     login(driver, wait, login_url, username, password)
+    authentication(driver, wait)
     navigate_to_vedoc(driver, wait, vedoc_url)
     process_vins(sheet, driver, wait)
 
