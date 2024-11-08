@@ -223,16 +223,16 @@ def main():
     excel_file = "NUMERY_VIN.xlsx"
     wb, sheet = load_excel(excel_file)
 
+    clear_console()
+    username = input("Podaj login: ")
+    password = getpass.getpass("Podaj hasło: ")
+
     with suppress_output():
         driver, wait = setup_webdriver()
 
     clear_console()
     login_url = 'https://prod.core.public.vedoc.i.mercedes-benz.com/ui/homepage.html'
     vedoc_url = 'https://prod.core.public.vedoc.i.mercedes-benz.com/ui/VehicleArrangement.html'
-
-    clear_console()
-    username = input("Podaj login: ")
-    password = getpass.getpass("Podaj hasło: ")
 
     clear_console()
     login(driver, wait, login_url, username, password)
